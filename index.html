@@ -41,54 +41,41 @@
   <button onclick="stopScanner()">Stop</button>
 
  <script>
-  let html5QrcodeScanner;
+  let qrScanner;
 
   function startScanner() {
-    const resultContainer = document.getElementById("result");
+    const resultEl = document.getElementById("result");
 
-    if (!html5QrcodeScanner) {
-      html5QrcodeScanner = new Html5Qrcode("reader");
+    // Initialize scanner only once
+    if (!qrScanner) {
+      qrScanner = new Html5Qrcode("reader");
     }
 
-    Html5Qrcode.getCameras()
-      .then(cameras => {
-        if (cameras && cameras.length) {
-          const cameraId = cameras[0].id;
-
-          html5QrcodeScanner.start(
-            cameraId,
-            {
-              fps: 10,
-              qrbox: 250
-            },
-            qrCodeMessage => {
-              resultContainer.innerText = `QR Code: ${qrCodeMessage}`;
-            },
-            errorMessage => {
-              console.warn("QR scan error:", errorMessage);
-            }
-          ).catch(err => {
-            resultContainer.innerText = `Error starting scanner: ${err}`;
-          });
-        } else {
-          resultContainer.innerText = "No cameras found.";
-        }
-      })
-      .catch(err => {
-        resultContainer.innerText = `Camera access denied or unavailable: ${err}`;
-      });
+    qrScanner.start(
+      { facingMode: "environment" }, // <-- Back camera hint
+      {
+        fps: 10,
+        qrbox: 250
+      },
+      qrCodeMessage => {
+        resultEl.innerText = `Scanned: ${qrCodeMessage}`;
+      },
+      errorMessage => {
+        console.warn(errorMessage);
+      }
+    ).catch(err => {
+      resultEl.innerText = `Camera error: ${err}`;
+    });
   }
 
   function stopScanner() {
-    const resultContainer = document.getElementById("result");
-    if (html5QrcodeScanner) {
-      html5QrcodeScanner.stop()
-        .then(() => {
-          resultContainer.innerText = "Scanner stopped.";
-        })
-        .catch(err => {
-          resultContainer.innerText = `Error stopping scanner: ${err}`;
-        });
+    const resultEl = document.getElementById("result");
+    if (qrScanner) {
+      qrScanner.stop().then(() => {
+        resultEl.innerText = "Scanner stopped.";
+      }).catch(err => {
+        resultEl.innerText = `Error stopping scanner: ${err}`;
+      });
     }
   }
 </script>
