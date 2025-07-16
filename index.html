@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR Code Scanner Web App</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 2rem;
+      background-color: #f4f4f4;
+    }
+    #reader {
+      width: 300px;
+      margin: auto;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #ddd;
+      display: inline-block;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>QR Code Scanner</h2>
+  <div id="reader"></div>
+  <div id="result">Result will appear here</div>
+  <br />
+  <button onclick="startScanner()">Start</button>
+  <button onclick="stopScanner()">Stop</button>
+
+ <script>
+  let html5QrcodeScanner;
+
+  function startScanner() {
+    const resultContainer = document.getElementById("result");
+
+    if (!html5QrcodeScanner) {
+      html5QrcodeScanner = new Html5Qrcode("reader");
+    }
+
+    Html5Qrcode.getCameras()
+      .then(cameras => {
+        if (cameras && cameras.length) {
+          const cameraId = cameras[0].id;
+
+          html5QrcodeScanner.start(
+            cameraId,
+            {
+              fps: 10,
+              qrbox: 250
+            },
+            qrCodeMessage => {
+              resultContainer.innerText = `QR Code: ${qrCodeMessage}`;
+            },
+            errorMessage => {
+              console.warn("QR scan error:", errorMessage);
+            }
+          ).catch(err => {
+            resultContainer.innerText = `Error starting scanner: ${err}`;
+          });
+        } else {
+          resultContainer.innerText = "No cameras found.";
+        }
+      })
+      .catch(err => {
+        resultContainer.innerText = `Camera access denied or unavailable: ${err}`;
+      });
+  }
+
+  function stopScanner() {
+    const resultContainer = document.getElementById("result");
+    if (html5QrcodeScanner) {
+      html5QrcodeScanner.stop()
+        .then(() => {
+          resultContainer.innerText = "Scanner stopped.";
+        })
+        .catch(err => {
+          resultContainer.innerText = `Error stopping scanner: ${err}`;
+        });
+    }
+  }
+</script>
+
+
+</body>
+</html>
