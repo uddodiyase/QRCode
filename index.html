@@ -73,6 +73,7 @@
       bottom: 0;
       left: 0;
       right: 0;
+      z-index: 100;
     }
     
     .btn {
@@ -153,6 +154,10 @@
       border-bottom: 1px solid var(--border-color);
     }
     
+    .detail-row:first-child {
+      border-top: 1px solid var(--border-color);
+    }
+    
     .detail-row:last-child {
       border-bottom: none;
     }
@@ -171,6 +176,14 @@
       padding: 5px 10px;
       border-radius: 4px;
       font-weight: bold;
+    }
+    
+    .slip-number {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--primary-color);
+      margin-bottom: 15px;
+      text-align: center;
     }
     
     .loader {
@@ -248,7 +261,7 @@
     </div>
     
     <div id="reader" style="display: none;">
-      <div class="scan-controls" id="scanControls">
+      <div class="scan-controls">
         <button id="cancelScanBtn" class="btn btn-warning">Cancel Scan</button>
       </div>
     </div>
@@ -269,11 +282,8 @@
     </div>
     
     <div id="slipDetails" class="slip-details" style="display: none;">
+      <div id="slipNumberDisplay" class="slip-number">Slip No: -</div>
       <h2>Packing Slip Details</h2>
-      <div class="detail-row">
-        <span class="detail-label">Slip No:</span>
-        <span class="detail-value" id="detail-slipno">-</span>
-      </div>
       <div class="detail-row">
         <span class="detail-label">Date:</span>
         <span class="detail-value" id="detail-date">-</span>
@@ -331,9 +341,8 @@
     const locationDisplay = document.getElementById('locationDisplay');
     const currentLocationEl = document.getElementById('currentLocation');
     const newLocationEl = document.getElementById('newLocation');
-    const scanControls = document.getElementById('scanControls');
     const reader = document.getElementById('reader');
-    
+    const slipNumberDisplay = document.getElementById('slipNumberDisplay');
     
     // Initialize scanner
     function initScanner() {
@@ -348,7 +357,6 @@
       initScanner();
       hideStatusMessage();
       reader.style.display = 'block';
-      scanControls.style.display = 'flex';
       
       qrScanner.start(
         { facingMode: "environment" },
@@ -360,7 +368,6 @@
         onScanError
       ).catch(err => {
         showStatusMessage(`Camera error: ${err}`, 'error');
-        scanControls.style.display = 'none';
         reader.style.display = 'none';
       });
     }
@@ -370,7 +377,6 @@
       if (qrScanner && qrScanner.isScanning) {
         qrScanner.stop().then(() => {
           reader.style.display = 'none';
-          scanControls.style.display = 'none';
         }).catch(err => {
           showStatusMessage(`Error stopping scanner: ${err}`, 'error');
         });
@@ -402,6 +408,8 @@
     // Handle slip number scan
     function handleSlipScan(slipNo) {
       currentSlipNo = slipNo;
+      alert("Slip No  " + slipNo);
+      slipNumberDisplay.textContent = `Slip No: ${slipNo}`;
       showLoader();
       
       // Simulate API call with timeout
@@ -482,6 +490,7 @@
       newLocationEl.textContent = '-';
       locationDisplay.style.display = 'none';
       slipDetails.style.display = 'none';
+      slipNumberDisplay.textContent = 'Slip No: -';
       
       // Reset form fields
       document.getElementById('detail-date').textContent = '-';
@@ -566,7 +575,6 @@
     
     // Initialize
     reader.style.display = 'none';
-    scanControls.style.display = 'none';
   </script>
 </body>
 </html>
