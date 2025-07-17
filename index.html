@@ -3,83 +3,458 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>QR Code Scanner Web App</title>
+  <title>Packing Slip Scanner</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #2980b9;
+      --success-color: #2ecc71;
+      --danger-color: #e74c3c;
+      --highlight-color: #fffacd;
+      --text-color: #333;
+      --light-gray: #f4f4f4;
+      --white: #ffffff;
+      --border-color: #ddd;
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      padding: 2rem;
-      background-color: #f4f4f4;
+      padding: 0;
+      background-color: var(--light-gray);
+      color: var(--text-color);
+      line-height: 1.6;
     }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 15px 0;
+      text-align: center;
+      margin-bottom: 30px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    h1, h2 {
+      margin: 0;
+    }
+    
     #reader {
-      width: 300px;
-      margin: auto;
+      width: 100%;
+      max-width: 500px;
+      margin: 20px auto;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
     }
-    #result {
-      margin-top: 20px;
-      font-size: 18px;
-      background: #fff;
-      padding: 10px;
-      border: 1px solid #ddd;
+    
+    .btn {
       display: inline-block;
-    }
-    button {
-      padding: 10px 20px;
+      background-color: var(--primary-color);
+      color: white;
+      padding: 12px 24px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
       font-size: 16px;
-      margin: 10px;
+      font-weight: bold;
+      text-align: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .btn:hover {
+      background-color: var(--secondary-color);
+      transform: translateY(-2px);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn-success {
+      background-color: var(--success-color);
+    }
+    
+    .btn-danger {
+      background-color: var(--danger-color);
+    }
+    
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+    
+    .slip-details {
+      background-color: var(--white);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+    
+    .detail-label {
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+    
+    .detail-value {
+      text-align: right;
+    }
+    
+    .highlight {
+      background-color: var(--highlight-color);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    
+    .loader {
+      display: none;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid var(--primary-color);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .status-message {
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 5px;
+      text-align: center;
+      font-weight: bold;
+    }
+    
+    .success {
+      background-color: rgba(46, 204, 113, 0.2);
+      color: var(--success-color);
+    }
+    
+    .error {
+      background-color: rgba(231, 76, 60, 0.2);
+      color: var(--danger-color);
+    }
+    
+    @media (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+      
+      .btn {
+        padding: 10px 15px;
+        font-size: 14px;
+      }
+      
+      .detail-row {
+        flex-direction: column;
+      }
+      
+      .detail-label {
+        margin-bottom: 5px;
+      }
+      
+      .detail-value {
+        text-align: left;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>QR Code Scanner</h2>
-  <div id="reader"></div>
-  <div id="result">Result will appear here</div>
-  <br />
-  <button onclick="startScanner()">Start</button>
-  <button onclick="stopScanner()">Stop</button>
+  <div class="container">
+    <header>
+      <h1>Packing Slip Scanner</h1>
+    </header>
+    
+    <div class="btn-group">
+      <button id="scanSlipBtn" class="btn">Scan Slip No</button>
+      <button id="scanLocationBtn" class="btn" disabled>Scan Location</button>
+      <button id="updateLocationBtn" class="btn btn-success" disabled>Update Location</button>
+    </div>
+    
+    <div id="reader"></div>
+    
+    <div id="loader" class="loader"></div>
+    
+    <div id="statusMessage" class="status-message" style="display: none;"></div>
+    
+    <div id="slipDetails" class="slip-details" style="display: none;">
+      <h2>Packing Slip Details</h2>
+      <div class="detail-row">
+        <span class="detail-label">Date:</span>
+        <span class="detail-value" id="detail-date">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">To:</span>
+        <span class="detail-value" id="detail-to">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">For Supply To:</span>
+        <span class="detail-value" id="detail-supply-to">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">QL:</span>
+        <span class="detail-value" id="detail-ql">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">S1:</span>
+        <span class="detail-value" id="detail-s1">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">S2:</span>
+        <span class="detail-value" id="detail-s2">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">S3:</span>
+        <span class="detail-value" id="detail-s3">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">OANO:</span>
+        <span class="detail-value" id="detail-oano">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">ITNO:</span>
+        <span class="detail-value" id="detail-itno">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Current Location:</span>
+        <span class="detail-value"><span class="highlight" id="detail-location">-</span></span>
+      </div>
+    </div>
+    
+    <div id="locationInfo" style="display: none; text-align: center; margin: 20px 0;">
+      <h3>New Location:</h3>
+      <p id="scannedLocation" class="highlight" style="font-size: 24px; padding: 10px;">-</p>
+    </div>
+  </div>
 
- <script>
-  let qrScanner;
-
-  function startScanner() {
-    const resultEl = document.getElementById("result");
-
-    // Initialize scanner only once
-    if (!qrScanner) {
-      qrScanner = new Html5Qrcode("reader");
-    }
-
-    qrScanner.start(
-      { facingMode: "environment" }, // <-- Back camera hint
-      {
-        fps: 10,
-        qrbox: 250
-      },
-      qrCodeMessage => {
-        resultEl.innerText = `Scanned: ${qrCodeMessage}`;
-      },
-      errorMessage => {
-        console.warn(errorMessage);
+  <script>
+    let qrScanner;
+    let currentScanMode = null;
+    let currentSlipNo = null;
+    let currentLocation = null;
+    
+    // DOM Elements
+    const scanSlipBtn = document.getElementById('scanSlipBtn');
+    const scanLocationBtn = document.getElementById('scanLocationBtn');
+    const updateLocationBtn = document.getElementById('updateLocationBtn');
+    const loader = document.getElementById('loader');
+    const statusMessage = document.getElementById('statusMessage');
+    const slipDetails = document.getElementById('slipDetails');
+    const locationInfo = document.getElementById('locationInfo');
+    const scannedLocation = document.getElementById('scannedLocation');
+    
+    // Initialize scanner
+    function initScanner() {
+      if (!qrScanner) {
+        qrScanner = new Html5Qrcode("reader");
       }
-    ).catch(err => {
-      resultEl.innerText = `Camera error: ${err}`;
-    });
-  }
-
-  function stopScanner() {
-    const resultEl = document.getElementById("result");
-    if (qrScanner) {
-      qrScanner.stop().then(() => {
-        resultEl.innerText = "Scanner stopped.";
-      }).catch(err => {
-        resultEl.innerText = `Error stopping scanner: ${err}`;
+    }
+    
+    // Start scanner with specified mode
+    function startScanner(mode) {
+      currentScanMode = mode;
+      initScanner();
+      hideStatusMessage();
+      document.getElementById('reader').style.display = 'block';
+      
+      qrScanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: 250
+        },
+        onScanSuccess,
+        onScanError
+      ).catch(err => {
+        showStatusMessage(`Camera error: ${err}`, 'error');
       });
     }
-  }
-</script>
-
-
+    
+    // Stop scanner
+    function stopScanner() {
+      if (qrScanner && qrScanner.isScanning) {
+        qrScanner.stop().then(() => {
+          document.getElementById('reader').style.display = 'none';
+        }).catch(err => {
+          showStatusMessage(`Error stopping scanner: ${err}`, 'error');
+        });
+      }
+    }
+    
+    // Handle scan success
+    function onScanSuccess(qrCodeMessage) {
+      stopScanner();
+      
+      if (currentScanMode === 'slip') {
+        handleSlipScan(qrCodeMessage);
+      } else if (currentScanMode === 'location') {
+        handleLocationScan(qrCodeMessage);
+      }
+    }
+    
+    // Handle scan error
+    function onScanError(errorMessage) {
+      console.warn(errorMessage);
+    }
+    
+    // Handle slip number scan
+    function handleSlipScan(slipNo) {
+      currentSlipNo = slipNo;
+      showLoader();
+      
+      // Simulate API call with timeout
+      setTimeout(() => {
+        hideLoader();
+        
+        // Mock API response - in real app you would use fetch or axios
+        const mockResponse = {
+          success: true,
+          data: {
+            date: '2025-04-11',
+            to: 'OCEANIC IMPEX FZE',
+            supplyTo: 'U.Z. ENTERPRIS',
+            ql: 'RD-75\\AF',
+            s1: '22',
+            s2: '34',
+            s3: '180',
+            oano: '646154',
+            itno: '4',
+            location: 'BHV'
+          }
+        };
+        
+        if (mockResponse.success) {
+          displaySlipDetails(mockResponse.data);
+          scanLocationBtn.disabled = false;
+          showStatusMessage('Slip details loaded successfully!', 'success');
+        } else {
+          showStatusMessage('Failed to load slip details', 'error');
+        }
+      }, 1500);
+    }
+    
+    // Handle location scan
+    function handleLocationScan(location) {
+      currentLocation = location;
+      scannedLocation.textContent = location;
+      locationInfo.style.display = 'block';
+      updateLocationBtn.disabled = false;
+      showStatusMessage('Location scanned successfully!', 'success');
+    }
+    
+    // Display slip details
+    function displaySlipDetails(details) {
+      document.getElementById('detail-date').textContent = details.date;
+      document.getElementById('detail-to').textContent = details.to;
+      document.getElementById('detail-supply-to').textContent = details.supplyTo;
+      document.getElementById('detail-ql').textContent = details.ql;
+      document.getElementById('detail-s1').textContent = details.s1;
+      document.getElementById('detail-s2').textContent = details.s2;
+      document.getElementById('detail-s3').textContent = details.s3;
+      document.getElementById('detail-oano').textContent = details.oano;
+      document.getElementById('detail-itno').textContent = details.itno;
+      document.getElementById('detail-location').textContent = details.location;
+      
+      slipDetails.style.display = 'block';
+    }
+    
+    // Update location
+    function updateLocation() {
+      if (!currentSlipNo || !currentLocation) {
+        showStatusMessage('Please scan both slip and location first', 'error');
+        return;
+      }
+      
+      showLoader();
+      
+      // Simulate API call with timeout
+      setTimeout(() => {
+        hideLoader();
+        
+        // Mock API response
+        const mockResponse = {
+          success: true,
+          message: 'Location updated successfully!'
+        };
+        
+        if (mockResponse.success) {
+          showStatusMessage(mockResponse.message, 'success');
+          document.getElementById('detail-location').textContent = currentLocation;
+          updateLocationBtn.disabled = true;
+          scanLocationBtn.disabled = true;
+          locationInfo.style.display = 'none';
+        } else {
+          showStatusMessage('Failed to update location', 'error');
+        }
+      }, 1500);
+    }
+    
+    // Helper functions
+    function showLoader() {
+      loader.style.display = 'block';
+    }
+    
+    function hideLoader() {
+      loader.style.display = 'none';
+    }
+    
+    function showStatusMessage(message, type) {
+      statusMessage.textContent = message;
+      statusMessage.className = `status-message ${type}`;
+      statusMessage.style.display = 'block';
+    }
+    
+    function hideStatusMessage() {
+      statusMessage.style.display = 'none';
+    }
+    
+    // Event listeners
+    scanSlipBtn.addEventListener('click', () => {
+      startScanner('slip');
+    });
+    
+    scanLocationBtn.addEventListener('click', () => {
+      startScanner('location');
+    });
+    
+    updateLocationBtn.addEventListener('click', updateLocation);
+    
+    // Initialize
+    document.getElementById('reader').style.display = 'none';
+  </script>
 </body>
 </html>
