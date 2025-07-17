@@ -62,20 +62,6 @@
       position: relative;
     }
     
-    .scan-controls {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 10px;
-      padding: 10px;
-      background-color: rgba(0,0,0,0.7);
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-    }
-    
     .btn {
       display: inline-block;
       background-color: var(--primary-color);
@@ -220,6 +206,16 @@
       color: var(--danger-color);
     }
     
+    .scan-active .btn-group {
+      display: none;
+    }
+    
+    .scan-active #scanControls {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    
     @media (max-width: 600px) {
       .container {
         padding: 10px;
@@ -260,11 +256,11 @@
       <button id="updateLocationBtn" class="btn btn-success" disabled>Update Location</button>
     </div>
     
-    <div id="reader" style="display: none;">
-      <div class="scan-controls">
-        <button id="cancelScanBtn" class="btn btn-warning">Cancel Scan</button>
-      </div>
+    <div id="scanControls" style="display: none;">
+      <button id="cancelScanBtn" class="btn btn-warning">Cancel Scan</button>
     </div>
+    
+    <div id="reader" style="display: none;"></div>
     
     <div id="loader" class="loader"></div>
     
@@ -343,6 +339,8 @@
     const newLocationEl = document.getElementById('newLocation');
     const reader = document.getElementById('reader');
     const slipNumberDisplay = document.getElementById('slipNumberDisplay');
+    const scanControls = document.getElementById('scanControls');
+    const container = document.querySelector('.container');
     
     // Initialize scanner
     function initScanner() {
@@ -357,6 +355,8 @@
       initScanner();
       hideStatusMessage();
       reader.style.display = 'block';
+      container.classList.add('scan-active');
+      scanControls.style.display = 'flex';
       
       qrScanner.start(
         { facingMode: "environment" },
@@ -369,6 +369,8 @@
       ).catch(err => {
         showStatusMessage(`Camera error: ${err}`, 'error');
         reader.style.display = 'none';
+        container.classList.remove('scan-active');
+        scanControls.style.display = 'none';
       });
     }
     
@@ -377,6 +379,8 @@
       if (qrScanner && qrScanner.isScanning) {
         qrScanner.stop().then(() => {
           reader.style.display = 'none';
+          container.classList.remove('scan-active');
+          scanControls.style.display = 'none';
         }).catch(err => {
           showStatusMessage(`Error stopping scanner: ${err}`, 'error');
         });
@@ -408,7 +412,6 @@
     // Handle slip number scan
     function handleSlipScan(slipNo) {
       currentSlipNo = slipNo;
-      alert("Slip No  " + slipNo);
       slipNumberDisplay.textContent = `Slip No: ${slipNo}`;
       showLoader();
       
@@ -575,6 +578,7 @@
     
     // Initialize
     reader.style.display = 'none';
+    scanControls.style.display = 'none';
   </script>
 </body>
 </html>
