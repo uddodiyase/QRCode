@@ -11,6 +11,7 @@
       --secondary-color: #2980b9;
       --success-color: #2ecc71;
       --danger-color: #e74c3c;
+      --warning-color: #f39c12;
       --highlight-color: #fffacd;
       --text-color: #333;
       --light-gray: #f4f4f4;
@@ -47,7 +48,7 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     
-    h1, h2 {
+    h1, h2, h3 {
       margin: 0;
     }
     
@@ -58,6 +59,20 @@
       border: 2px solid var(--border-color);
       border-radius: 8px;
       overflow: hidden;
+      position: relative;
+    }
+    
+    .scan-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px;
+      background-color: rgba(0,0,0,0.7);
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
     }
     
     .btn {
@@ -93,11 +108,34 @@
       background-color: var(--danger-color);
     }
     
+    .btn-warning {
+      background-color: var(--warning-color);
+    }
+    
     .btn-group {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
       margin: 20px 0;
+    }
+    
+    .location-display {
+      background-color: var(--white);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    
+    .location-item {
+      flex: 1;
+      min-width: 200px;
+      margin: 5px;
+      padding: 10px;
+      text-align: center;
     }
     
     .slip-details {
@@ -190,6 +228,10 @@
       .detail-value {
         text-align: left;
       }
+      
+      .location-item {
+        min-width: 100%;
+      }
     }
   </style>
 </head>
@@ -205,14 +247,33 @@
       <button id="updateLocationBtn" class="btn btn-success" disabled>Update Location</button>
     </div>
     
-    <div id="reader"></div>
+    <div id="reader" style="display: none;">
+      <div class="scan-controls" id="scanControls">
+        <button id="cancelScanBtn" class="btn btn-warning">Cancel Scan</button>
+      </div>
+    </div>
     
     <div id="loader" class="loader"></div>
     
     <div id="statusMessage" class="status-message" style="display: none;"></div>
     
+    <div id="locationDisplay" class="location-display" style="display: none;">
+      <div class="location-item">
+        <h3>Current Location</h3>
+        <p id="currentLocation" class="highlight">-</p>
+      </div>
+      <div class="location-item">
+        <h3>New Location</h3>
+        <p id="newLocation" class="highlight">-</p>
+      </div>
+    </div>
+    
     <div id="slipDetails" class="slip-details" style="display: none;">
       <h2>Packing Slip Details</h2>
+      <div class="detail-row">
+        <span class="detail-label">Slip No:</span>
+        <span class="detail-value" id="detail-slipno">-</span>
+      </div>
       <div class="detail-row">
         <span class="detail-label">Date:</span>
         <span class="detail-value" id="detail-date">-</span>
@@ -249,15 +310,6 @@
         <span class="detail-label">ITNO:</span>
         <span class="detail-value" id="detail-itno">-</span>
       </div>
-      <div class="detail-row">
-        <span class="detail-label">Current Location:</span>
-        <span class="detail-value"><span class="highlight" id="detail-location">-</span></span>
-      </div>
-    </div>
-    
-    <div id="locationInfo" style="display: none; text-align: center; margin: 20px 0;">
-      <h3>New Location:</h3>
-      <p id="scannedLocation" class="highlight" style="font-size: 24px; padding: 10px;">-</p>
     </div>
   </div>
 
@@ -266,16 +318,22 @@
     let currentScanMode = null;
     let currentSlipNo = null;
     let currentLocation = null;
+    let newLocation = null;
     
     // DOM Elements
     const scanSlipBtn = document.getElementById('scanSlipBtn');
     const scanLocationBtn = document.getElementById('scanLocationBtn');
     const updateLocationBtn = document.getElementById('updateLocationBtn');
+    const cancelScanBtn = document.getElementById('cancelScanBtn');
     const loader = document.getElementById('loader');
     const statusMessage = document.getElementById('statusMessage');
     const slipDetails = document.getElementById('slipDetails');
-    const locationInfo = document.getElementById('locationInfo');
-    const scannedLocation = document.getElementById('scannedLocation');
+    const locationDisplay = document.getElementById('locationDisplay');
+    const currentLocationEl = document.getElementById('currentLocation');
+    const newLocationEl = document.getElementById('newLocation');
+    const scanControls = document.getElementById('scanControls');
+    const reader = document.getElementById('reader');
+    
     
     // Initialize scanner
     function initScanner() {
@@ -289,7 +347,8 @@
       currentScanMode = mode;
       initScanner();
       hideStatusMessage();
-      document.getElementById('reader').style.display = 'block';
+      reader.style.display = 'block';
+      scanControls.style.display = 'flex';
       
       qrScanner.start(
         { facingMode: "environment" },
@@ -301,6 +360,8 @@
         onScanError
       ).catch(err => {
         showStatusMessage(`Camera error: ${err}`, 'error');
+        scanControls.style.display = 'none';
+        reader.style.display = 'none';
       });
     }
     
@@ -308,11 +369,18 @@
     function stopScanner() {
       if (qrScanner && qrScanner.isScanning) {
         qrScanner.stop().then(() => {
-          document.getElementById('reader').style.display = 'none';
+          reader.style.display = 'none';
+          scanControls.style.display = 'none';
         }).catch(err => {
           showStatusMessage(`Error stopping scanner: ${err}`, 'error');
         });
       }
+    }
+    
+    // Cancel scanning
+    function cancelScan() {
+      stopScanner();
+      showStatusMessage('Scan cancelled', 'error');
     }
     
     // Handle scan success
@@ -358,7 +426,9 @@
         };
         
         if (mockResponse.success) {
+          currentLocation = mockResponse.data.location;
           displaySlipDetails(mockResponse.data);
+          updateLocationDisplay();
           scanLocationBtn.disabled = false;
           showStatusMessage('Slip details loaded successfully!', 'success');
         } else {
@@ -369,11 +439,21 @@
     
     // Handle location scan
     function handleLocationScan(location) {
-      currentLocation = location;
-      scannedLocation.textContent = location;
-      locationInfo.style.display = 'block';
+      newLocation = location;
+      updateLocationDisplay();
       updateLocationBtn.disabled = false;
       showStatusMessage('Location scanned successfully!', 'success');
+    }
+    
+    // Update location display
+    function updateLocationDisplay() {
+      if (currentLocation) {
+        currentLocationEl.textContent = currentLocation;
+      }
+      if (newLocation) {
+        newLocationEl.textContent = newLocation;
+      }
+      locationDisplay.style.display = 'flex';
     }
     
     // Display slip details
@@ -387,14 +467,41 @@
       document.getElementById('detail-s3').textContent = details.s3;
       document.getElementById('detail-oano').textContent = details.oano;
       document.getElementById('detail-itno').textContent = details.itno;
-      document.getElementById('detail-location').textContent = details.location;
       
       slipDetails.style.display = 'block';
     }
     
+    // Reset the entire application
+    function resetApp() {
+      currentSlipNo = null;
+      currentLocation = null;
+      newLocation = null;
+      
+      // Reset UI elements
+      currentLocationEl.textContent = '-';
+      newLocationEl.textContent = '-';
+      locationDisplay.style.display = 'none';
+      slipDetails.style.display = 'none';
+      
+      // Reset form fields
+      document.getElementById('detail-date').textContent = '-';
+      document.getElementById('detail-to').textContent = '-';
+      document.getElementById('detail-supply-to').textContent = '-';
+      document.getElementById('detail-ql').textContent = '-';
+      document.getElementById('detail-s1').textContent = '-';
+      document.getElementById('detail-s2').textContent = '-';
+      document.getElementById('detail-s3').textContent = '-';
+      document.getElementById('detail-oano').textContent = '-';
+      document.getElementById('detail-itno').textContent = '-';
+      
+      // Reset buttons
+      scanLocationBtn.disabled = true;
+      updateLocationBtn.disabled = true;
+    }
+    
     // Update location
     function updateLocation() {
-      if (!currentSlipNo || !currentLocation) {
+      if (!currentSlipNo || !newLocation) {
         showStatusMessage('Please scan both slip and location first', 'error');
         return;
       }
@@ -412,11 +519,13 @@
         };
         
         if (mockResponse.success) {
+          currentLocation = newLocation;
+          newLocation = null;
+          updateLocationDisplay();
           showStatusMessage(mockResponse.message, 'success');
-          document.getElementById('detail-location').textContent = currentLocation;
-          updateLocationBtn.disabled = true;
-          scanLocationBtn.disabled = true;
-          locationInfo.style.display = 'none';
+          
+          // Reset the app after 2 seconds
+          setTimeout(resetApp, 2000);
         } else {
           showStatusMessage('Failed to update location', 'error');
         }
@@ -453,8 +562,11 @@
     
     updateLocationBtn.addEventListener('click', updateLocation);
     
+    cancelScanBtn.addEventListener('click', cancelScan);
+    
     // Initialize
-    document.getElementById('reader').style.display = 'none';
+    reader.style.display = 'none';
+    scanControls.style.display = 'none';
   </script>
 </body>
 </html>
